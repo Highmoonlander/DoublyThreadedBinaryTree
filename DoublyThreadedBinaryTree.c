@@ -1,114 +1,188 @@
-public class DoublyThreadedInOrderTree {
-    static class Node{
-        int data;
-        int lbit, rbit;
-        Node left, right;
-        Node(int data){
-            this.data = data;
-            this.lbit = this.rbit = 0;
-            this.left = this.right = null;
+#include<stdio.h>
+#include<stdlib.h>
+#define MAX 50
+
+struct node{
+    int data;
+    int lbit,rbit;
+    struct node* left,*right;
+};
+
+struct node* createNode(int data){
+    struct node* newNode = (struct node*)malloc(sizeof(struct node));
+    newNode->data = data;
+    newNode->lbit = newNode->rbit = 0;
+    newNode->left = newNode->right = NULL;
+    return newNode;
+}
+
+struct node* insertTBT(struct node* head,int data){
+    struct node* temp, *curr;
+    temp = createNode(data);
+    if(head->left == head){
+        temp->left = temp->right = head;
+        head->left = temp;
+        return head;
+    }
+    curr = head->left;
+    while(1){
+        if(data < curr->data && curr->lbit == 1){
+            curr = curr->left;
+        }
+        if(data > curr->data && curr->rbit == 1){
+            curr = curr->right;
+        }
+        else{
+            break;
         }
     }
+    if(data < curr->data){
+        curr->lbit = 1;
+        temp->left = curr->left;
+        curr->left = temp;
+        temp->right = curr;
+    }
+    else if(data > curr->data){
+        curr->rbit = 1;
+        temp->right = curr->right;
+        curr->right = temp;
+        temp->left = curr;
+    }
+    return head;
+}
 
-    public static Node insert(Node head, int data) {
-        Node newNode = new Node(data);
-        if (head.left == head) {
-            head.left = newNode;
-            newNode.left = head;
-            newNode.right = head;
-            head.lbit = 1;
-            return head;
+void inOrderTBT(struct node* head){
+    struct node* temp = head->left;
+    while(temp != head){
+        while(temp->lbit == 1){
+            temp = temp->left;
         }
-        Node curr = head.left;
-        Node prev = null;
-        do{
-            prev = curr;
-            if (data < curr.data) {
-                if (curr.lbit == 0) {
-                    break;
-                }
-                curr = curr.left;
-            } else if (data > curr.data) {
-                if (curr.rbit == 0) {
-                    break;
-                }
-                curr = curr.right;
-            } else {
-                // Handle duplicate values (if needed)
-                return head;
-            }
-        }while (curr != head);
+        printf("%d\t",temp->data);
+        while(temp->rbit == 0 && temp->right != head){
+            temp = temp->right;
+            printf("%d\t",temp->data);
+        }
+        temp = temp->right;
+    }
+    printf("\n");
+}
 
-        if (data < prev.data) {
-            newNode.left = prev.left;
-            prev.left = newNode;
-            newNode.right = prev;
-            prev.lbit = 1;
-        } else if (data > prev.data) {
-            newNode.right = prev.right;
-            prev.right = newNode;
-            newNode.left = prev;
-            prev.rbit = 1;
-        }
+// void inOrder(struct node* head){
+//     struct node* temp = head->left;
+//     while(temp->lbit != 0){
+//         temp = temp->left;
+//     }
+//     while(temp != head){
+//         printf("%d\t",temp->data);
+//         temp = temp->right;
+//     }
+//     return;
+// }
+
+struct node* inorderPredecessor(struct node* root){
+    root = root->left;
+    while(root->rbit == 1){
+        root = root->right;
+    }
+    return root;
+}
+
+struct node* deleteTBT(struct node* head, int data) {
+    struct node *parent = NULL, *curr = head->left;
+
+    while (curr != NULL && curr->data != data) {
+        parent = curr;
+        curr = (data < curr->data) ? curr->left : curr->right;
+    }
+
+    if (curr == NULL) {
+        printf("Node not found!");
         return head;
     }
 
-    public static void inOrder(Node head){
-        Node curr = head.left;
-        do{
-            while (curr.lbit == 1) {
-                curr = curr.left;
+    if (curr->lbit == 0 && curr->rbit == 0) {
+        if (parent != NULL) {
+            if (curr == parent->left) {
+                parent->lbit = 0;
+                parent->left = curr->left;
+            } else {
+                parent->rbit = 0;
+                parent->right = curr->right;
             }
-            System.out.printf("%d\t",curr.data);
-            while (curr.rbit == 0) {
-                curr = curr.right;
-                if(curr == head){
-                    break;
-                }
-                System.out.printf("%d\t",curr.data);
-            }
-            curr = curr.right;
-        }while(curr != head);
-    }
-
-    public static void preOrder(Node head){
-        Node curr = head.left;
-        do{
-            System.out.printf("%d\t",curr.data);
-            if(curr.lbit == 1){
-                curr = curr.left;
-            }
-            else if(curr.rbit == 0){
-                while (curr.rbit == 0) {
-                    curr = curr.right;
-                    curr = curr.right;
-                }
-            }
-            else if(curr.rbit == 1){
-                curr = curr.right;
-            }
-        }while(curr != head);
-    }
-
-    public static void main(String[] args) {
-        Node head = new Node(-1);
-        head.rbit = head.lbit = 1;
-        head.left = head.right = head;
-/*
-                8
-              /   \
-            3       9
-           / \       \
-          2   5       10
-               \
-                7     
- */
-        int[] arr = {8,3,2,5,9,7,10};
-        for(int i : arr){
-            head = insert(head, i);
+        } else {
+            head->left = head;
         }
-        inOrder(head);
-        System.out.println();
-        preOrder(head);
+        free(curr);
+    } else if (curr->lbit == 0 || curr->rbit == 0) {
+        struct node* child = (curr->lbit == 1) ? curr->left : curr->right;
+        if (parent != NULL) {
+            if (curr == parent->left) {
+                parent->left = child;
+            } else {
+                parent->right = child;
+            }
+        } else {
+            head->left = child;
+        }
+        free(curr);
+    } else {
+        struct node* pred = inorderPredecessor(curr);
+        int tempData = pred->data;
+        deleteTBT(head, pred->data);
+        curr->data = tempData;
+    }
+    return head;
+}
+
+void preOrder(struct node* head){
+    struct node* curr = head->left;
+    while(curr != head){
+        while(curr->lbit != 0){
+            printf("%d\t",curr->data);
+            curr = curr->left;
+        }
+        while(curr != head && curr->rbit == 0){
+            if(curr->rbit == 0){
+                printf("%d\t",curr->data);
+            }
+            curr = curr->right;
+        }
+        curr = curr->right;
+    }
+}
+
+int main(){
+    int data,choice;
+    struct node* head = (struct node*)malloc(sizeof(struct node));
+    head->lbit = head->rbit = 1;
+    head->left = head->right = head;
+    while(1){
+        printf("Following operations can be Performed on a TBT:\n");
+        printf("1. Insert\n2. Inorder\n3. Deletion\n4. Exit\n5.preOrder\n");
+        printf("Enter you choice: ");
+        scanf("%d",&choice);
+        switch(choice){
+            case 1:
+                printf("Enter data: ");
+                scanf("%d",&data);
+                head = insertTBT(head, data);
+            break;
+            case 2:
+                printf("Inorder-->\n");
+                inOrderTBT(head);
+            break;
+            case 3:
+                printf("Enter the data to delete: ");
+                scanf("%d",&data);
+                head = deleteTBT(head, data);
+            break;
+            case 4:
+                exit(0);
+            break;
+            case 5:
+                printf("Preorder-->\n");
+                preOrder(head);
+            default: printf("Invalid choice!!\n");
+        }
     }
 }
